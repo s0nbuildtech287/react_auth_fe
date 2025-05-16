@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { Link, useNavigate } from "react-router-dom";
 import { setDoc, doc } from "firebase/firestore";
-import { auth, db } from "../index"; // Import auth và db từ index.tsx
+import { auth, db } from "../index";
 
 const Register: React.FC = () => {
   const [email, setEmail] = useState<string>("");
@@ -17,7 +17,17 @@ const Register: React.FC = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Tạo người dùng với email và mật khẩu
+      // Kiểm tra dữ liệu đầu vào
+      if (!age || isNaN(parseInt(age))) {
+        setError("Tuổi không hợp lệ");
+        return;
+      }
+      if (password.length < 6) {
+        setError("Mật khẩu phải có ít nhất 6 ký tự");
+        return;
+      }
+
+      // Tạo người dùng với Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -26,19 +36,48 @@ const Register: React.FC = () => {
       const user = userCredential.user;
       console.log("Đã tạo user:", user.uid);
 
-      await setDoc(doc(db, "users", user.uid), {
+      const userData = {
         email: email,
         username: username,
         phone: phone,
         age: parseInt(age),
         address: address,
         createdAt: new Date(),
-      });
+      };
+      await setDoc(doc(db, "users", user.uid), userData);
       console.log("Đã ghi vào Firestore");
+
+      const response = await fetch("http://localhost:5000/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          uid: user.uid,
+          email: userData.email,
+          username: userData.username,
+          phone: userData.phone,
+          age: userData.age,
+          address: userData.address,
+          createdAt: userData.createdAt.toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Lỗi khi lưu vào MySQL");
+      }
+      console.log("Đã ghi vào MySQL");
+
       navigate("/");
     } catch (err: any) {
       console.error("Lỗi đăng ký:", err.code, err.message);
-      setError(err.message);
+      if (err.code === "auth/email-already-in-use") {
+        setError("Email đã được sử dụng");
+      } else if (err.code === "auth/weak-password") {
+        setError("Mật khẩu quá yếu");
+      } else {
+        setError("Đã có lỗi xảy ra. Vui lòng thử lại.");
+      }
     }
   };
 
