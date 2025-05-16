@@ -3,8 +3,10 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
 import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { BrowserRouter } from "react-router-dom"; // Thêm BrowserRouter
 
-// Cấu hình Firebase (thay bằng cấu hình của bạn)
 const firebaseConfig = {
   apiKey: "AIzaSyByXul5rkYt10n2aQs8giAKqBIZyrEST80",
   authDomain: "react-authen-48b00.firebaseapp.com",
@@ -15,13 +17,17 @@ const firebaseConfig = {
   measurementId: "G-ZMBHVFHBB0",
 };
 
-initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 root.render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </React.StrictMode>
 );
